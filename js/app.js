@@ -238,52 +238,100 @@ window.renderCarousel = function() {
     const container = document.getElementById('offers-carousel-container');
     if (!container || specialOffersData.length === 0) return;
 
-    // Mostrar hasta 3 ofertas a la vez
-    const itemsToShow = window.innerWidth < 768 ? 1 : 3;
-    let visibleOffers = [];
-    
-    for (let i = 0; i < itemsToShow; i++) {
-        if (specialOffersData.length > 0) {
-            visibleOffers.push(specialOffersData[(currentCarouselIndex + i) % specialOffersData.length]);
-        }
-    }
-
     container.innerHTML = `
         <h3 style="color: var(--gold); font-family: var(--font-heading); margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
             ✨ Ofertas Especiales ✨
         </h3>
-        <div style="display: flex; gap: 15px; justify-content: center; overflow: hidden; transition: 0.5s ease-in-out;">
-            ${visibleOffers.map(offer => `
-                <div class="product-card" style="flex: 1; max-width: 250px; text-align: center; border-color: var(--gold); background: linear-gradient(rgba(11,15,25,0.8), rgba(11,15,25,0.95)); cursor: pointer;" onclick="openPromoCheckout('${offer.id}')">
-                    <img src="${offer.image_url}" alt="${offer.title}" style="max-width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
-                    <div style="font-weight: bold; color: white;">${offer.title}</div>
-                    <div style="color: var(--cyan-neon); font-size: 1.2rem; font-weight: bold; margin-top: 5px;">${formatPrice(offer.price_usdt)}</div>
-                    <button class="btn btn-outline" style="margin-top: 10px; width: 100%; border-color: var(--gold); color: var(--gold); padding: 5px;">Adquirir Oferta</button>
+        <div id="offers-scroll-wrapper" class="no-scrollbar" style="display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none; padding-bottom: 10px; cursor: grab;">
+            ${specialOffersData.map(offer => `
+                <div class="product-card" style="flex: 0 0 auto; width: 250px; text-align: center; border-color: var(--gold); background: linear-gradient(rgba(11,15,25,0.8), rgba(11,15,25,0.95));" onclick="openPromoCheckout('${offer.id}')">
+                    <img src="${offer.image_url}" alt="${offer.title}" style="max-width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; pointer-events: none;">
+                    <div style="font-weight: bold; color: white; pointer-events: none;">${offer.title}</div>
+                    <div style="color: var(--cyan-neon); font-size: 1.2rem; font-weight: bold; margin-top: 5px; pointer-events: none;">${formatPrice(offer.price_usdt)}</div>
+                    <button class="btn btn-outline" style="margin-top: 10px; width: 100%; border-color: var(--gold); color: var(--gold); padding: 5px; pointer-events: none;">Adquirir Oferta</button>
                 </div>
             `).join('')}
         </div>
-        ${specialOffersData.length > itemsToShow ? `
-            <div style="margin-top: 15px;">
-                <button onclick="rotateCarousel(-1)" class="btn btn-outline" style="padding: 5px 10px; border-radius: 50%;">◀</button>
-                <button onclick="rotateCarousel(1)" class="btn btn-outline" style="padding: 5px 10px; border-radius: 50%;">▶</button>
-            </div>
-        ` : ''}
     `;
+    setTimeout(() => setupDraggableAutoScroll('offers-scroll-wrapper', 1), 100);
 };
 
-window.rotateCarousel = function(direction) {
-    currentCarouselIndex += direction;
-    if (currentCarouselIndex < 0) currentCarouselIndex = specialOffersData.length - 1;
-    if (currentCarouselIndex >= specialOffersData.length) currentCarouselIndex = 0;
-    renderCarousel();
-};
+// Utilidad para hacer carruseles arrastrables y auto-deslizables con loop infinito
+window.setupDraggableAutoScroll = function(containerId, speed = 1) {
+    const slider = document.getElementById(containerId);
+    if (!slider) return;
 
-// Rotación automática cada 4 segundos
-setInterval(() => {
-    if (specialOffersData.length > (window.innerWidth < 768 ? 1 : 3)) {
-        rotateCarousel(1);
+    // Clonar elementos para asegurar que el carrusel siempre se vea lleno y tenga efecto infinito
+    const originalChildren = Array.from(slider.children);
+    if (originalChildren.length === 0) return;
+    
+    // Multiplicador arbitrario para asegurar de que el ancho sea enorme
+    // (min 10 iteraciones para garantizar que sobrepasa el ancho de la pantalla holgadamente)
+    const multiplier = Math.max(10, Math.ceil(20 / originalChildren.length));
+    
+    for (let i = 1; i < multiplier; i++) {
+        originalChildren.forEach(child => {
+            const clone = child.cloneNode(true);
+            slider.appendChild(clone);
+        });
     }
-}, 4000);
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    let isHovered = false;
+
+    slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        slider.style.cursor = 'grabbing';
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+    });
+    slider.addEventListener('mouseleave', () => {
+        isDown = false;
+        slider.style.cursor = 'grab';
+        isHovered = false;
+    });
+    slider.addEventListener('mouseenter', () => {
+        isHovered = true;
+    });
+    slider.addEventListener('mouseup', () => {
+        isDown = false;
+        slider.style.cursor = 'grab';
+    });
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 2;
+        slider.scrollLeft = scrollLeft - walk;
+    });
+
+    slider.addEventListener('touchstart', () => isHovered = true, {passive: true});
+    slider.addEventListener('touchend', () => {
+        isHovered = false;
+        isDown = false;
+    }, {passive: true});
+
+    // Calcular el ancho de UN set completo original midiendo la distancia al primer clon
+    // Esto es exacto porque tiene en cuenta los gaps (espacios) de CSS flex
+    const getFirstSetWidth = () => {
+        const firstClone = slider.children[originalChildren.length];
+        return firstClone ? (firstClone.offsetLeft - slider.children[0].offsetLeft) : (slider.scrollWidth / multiplier);
+    };
+
+    setInterval(() => {
+        if (!isHovered && !isDown) {
+            slider.scrollLeft += speed;
+        }
+
+        // Salto invisible para efecto infinito verdadero
+        const setWidth = getFirstSetWidth();
+        if (slider.scrollLeft >= setWidth && setWidth > 0) {
+            slider.scrollLeft -= setWidth;
+        }
+    }, 30);
+};
 
 async function loadSettings() {
     try {
@@ -362,20 +410,20 @@ function updateFaviconAndLogo(logoUrl) {
 
 async function renderHome() {
     appContainer.innerHTML = `
-        <div style="text-align: center; padding: 20px 0;">
-            <h1 style="font-family: var(--font-heading); font-size: 3rem; margin-bottom: 10px;">
+        <div style="text-align: center; padding: 20px 0; overflow-x: hidden; width: 100%;">
+            <h1 class="home-title" style="font-family: var(--font-heading); margin-bottom: 10px;">
                 ¿Qué deseas <span style="color: var(--cyan-neon); text-shadow: 0 0 10px rgba(0,255,255,0.2);">recargar</span> hoy?
             </h1>
             
             <!-- Carrusel de Ofertas -->
-            <div id="offers-carousel-container" style="margin-bottom: 30px;"></div>
+            <div id="offers-carousel-container" style="margin-bottom: 30px; overflow: hidden; width: 100%;"></div>
 
             <div class="categories-grid" id="categories-list">
                 <div class="loader">Cargando categorías...</div>
             </div>
 
             <!-- SECCIÓN DE RESEÑAS -->
-            <div class="reviews-section" id="home-reviews-section">
+            <div class="reviews-section" id="home-reviews-section" style="overflow: hidden;">
                 <h2 style="font-family: var(--font-heading); color: var(--gold); margin-bottom: 10px;">¿Qué dicen nuestros clientes?</h2>
                 ${currentUser ? `<button class="btn btn-outline" style="margin-bottom: 20px;" onclick="openReviewModal()">Dejar una Opinión</button>` : `<p style="color:var(--text-muted); font-size: 0.9rem;">Inicia sesión para dejar tu reseña.</p>`}
                 
@@ -404,15 +452,15 @@ async function renderHome() {
         const categoriesList = document.getElementById('categories-list');
         if (categoriesList) {
             categoriesList.innerHTML = `
-                <div class="category-card card-ff" onclick="navigateTo('/free-fire')" style="${uiImages['cat_free_fire'] ? `background-image: linear-gradient(rgba(11,15,25,0.6), rgba(11,15,25,0.9)), url(${uiImages['cat_free_fire']}); background-size: cover; background-position: center; border-color: #f59e0b; padding: 40px 20px;` : ''}">
+                <div class="category-card card-ff" onclick="navigateTo('/free-fire')" style="${uiImages['cat_free_fire'] ? `background-image: url(${uiImages['cat_free_fire']}); background-size: cover; background-position: center; border-color: #f59e0b; min-height: 140px;` : ''}">
                     ${uiImages['cat_free_fire'] ? '' : '<div class="category-icon">🔥</div>'}
                     <h3 class="category-title">Free Fire</h3>
                 </div>
-                <div class="category-card card-bs" onclick="navigateTo('/blood-strike')" style="${uiImages['cat_blood_strike'] ? `background-image: linear-gradient(rgba(11,15,25,0.6), rgba(11,15,25,0.9)), url(${uiImages['cat_blood_strike']}); background-size: cover; background-position: center; border-color: #ec4899; padding: 40px 20px;` : ''}">
+                <div class="category-card card-bs" onclick="navigateTo('/blood-strike')" style="${uiImages['cat_blood_strike'] ? `background-image: url(${uiImages['cat_blood_strike']}); background-size: cover; background-position: center; border-color: #ec4899; min-height: 140px;` : ''}">
                     ${uiImages['cat_blood_strike'] ? '' : '<div class="category-icon">🩸</div>'}
                     <h3 class="category-title">Blood Strike</h3>
                 </div>
-                <div class="category-card card-st" onclick="navigateTo('/streaming')" style="${uiImages['cat_streaming'] ? `background-image: linear-gradient(rgba(11,15,25,0.6), rgba(11,15,25,0.9)), url(${uiImages['cat_streaming']}); background-size: cover; background-position: center; border-color: #06b6d4; padding: 40px 20px;` : ''}">
+                <div class="category-card card-st" onclick="navigateTo('/streaming')" style="${uiImages['cat_streaming'] ? `background-image: url(${uiImages['cat_streaming']}); background-size: cover; background-position: center; border-color: #06b6d4; min-height: 140px;` : ''}">
                     ${uiImages['cat_streaming'] ? '' : '<div class="category-icon">🍿</div>'}
                     <h3 class="category-title">Streaming</h3>
                 </div>
@@ -440,14 +488,18 @@ async function loadHomeReviews() {
             return;
         }
 
-        grid.innerHTML = data.map(r => `
-            <div class="review-card" style="text-align: left;">
+        const reviewsHtml = data.map(r => `
+            <div class="review-card" style="flex: 0 0 auto; width: 300px; text-align: left; user-select: none;">
                 <div class="review-stars">${'⭐'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
                 <div class="review-author">${r.author_name || 'Usuario'}</div>
                 <div class="review-text">"${r.comment}"</div>
                 <div style="font-size: 0.7rem; color: #666; margin-top: 10px;">${new Date(r.created_at).toLocaleDateString()}</div>
             </div>
         `).join('');
+
+        grid.innerHTML = `<div id="reviews-scroll-wrapper" class="no-scrollbar" style="display: flex; gap: 20px; overflow-x: auto; scrollbar-width: none; padding-bottom: 10px; cursor: grab;">${reviewsHtml}</div>`;
+        
+        setTimeout(() => setupDraggableAutoScroll('reviews-scroll-wrapper', 0.5), 100);
 
     } catch (e) {
         grid.innerHTML = `<p style="color:#ef4444;">Error cargando reseñas</p>`;
@@ -952,12 +1004,6 @@ window.openPromoCheckout = function(offerId) {
     const offer = specialOffersData.find(o => o.id === offerId);
     if (!offer) return;
 
-    if (!currentUser) {
-        alert("Debes iniciar sesión para comprar.");
-        navigateTo('/login');
-        return;
-    }
-
     let reqFields = offer.required_fields || [];
 
     const mockedProduct = {
@@ -982,14 +1028,16 @@ window.openPromoCheckout = function(offerId) {
 };
 
 window.openCheckoutModal = function(productId) {
-    if (!currentUser) {
-        alert("Debes iniciar sesión para comprar.");
-        navigateTo('/login');
-        return;
-    }
-
     const product = currentProducts.find(p => p.id === productId);
     if (!product) return;
+
+    // Mostrar u ocultar campos de invitado
+    const guestFields = document.getElementById('guest-checkout-fields');
+    if (!currentUser) {
+        if(guestFields) guestFields.style.display = 'block';
+    } else {
+        if(guestFields) guestFields.style.display = 'none';
+    }
 
     document.getElementById('selected-product-id').value = productId;
     document.getElementById('modal-product-name').textContent = `Comprar: ${product.name}`;
@@ -1019,11 +1067,11 @@ window.openCheckoutModal = function(productId) {
     `).join('');
 
     // Billetera (Saldo) logic
-    const walletBalance = Number(currentProfile.balance) || 0;
+    const walletBalance = currentProfile ? (Number(currentProfile.balance) || 0) : 0;
     document.getElementById('current-wallet-balance').textContent = `${walletBalance.toFixed(2)} USDT`;
     
     const saldoCard = document.getElementById('method-saldo');
-    if (walletBalance >= priceUsdt) {
+    if (currentUser && walletBalance >= priceUsdt) {
         saldoCard.style.display = 'block'; // Mostrar opción de saldo si tiene suficiente
     } else {
         saldoCard.style.display = 'none';
@@ -1117,7 +1165,6 @@ window.handleFileChange = function(event, labelId) {
 
 document.getElementById('checkout-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentUser) return;
 
     const btn = document.getElementById('btn-submit-order');
     btn.disabled = true;
@@ -1135,6 +1182,16 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
         let publicUrl = null;
         let reference = null;
+        let guestWhatsapp = null;
+
+        if (!currentUser) {
+            guestWhatsapp = document.getElementById('guest-whatsapp').value;
+            if (!guestWhatsapp) {
+                btn.disabled = false;
+                btn.textContent = "Confirmar Pago";
+                throw new Error("El número de WhatsApp es obligatorio para invitados.");
+            }
+        }
 
         if (method !== 'saldo') {
             if (!selectedFile) throw new Error("Debes subir un capture.");
@@ -1142,17 +1199,25 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
             const fileExt = selectedFile.name.split('.').pop();
             const fileName = `order-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const { error: uploadError } = await supabaseClient.storage.from('payment_proofs').upload(`${currentUser.id}/${fileName}`, selectedFile);
+            const uploadPath = currentUser ? `${currentUser.id}/${fileName}` : `guests/${fileName}`;
+            
+            const { error: uploadError } = await supabaseClient.storage.from('payment_proofs').upload(uploadPath, selectedFile);
             if (uploadError) throw uploadError;
             
-            const { data } = supabaseClient.storage.from('payment_proofs').getPublicUrl(`${currentUser.id}/${fileName}`);
+            const { data } = supabaseClient.storage.from('payment_proofs').getPublicUrl(uploadPath);
             publicUrl = data.publicUrl;
         }
 
-        // Datos del juego
+        // Datos del pedido
         const orderData = {};
         if (isPromo) {
             orderData['[OFERTA]'] = product.name;
+            orderData['[PRECIO_USDT]'] = priceUsdt;
+        }
+        if (guestWhatsapp) {
+            orderData['WhatsApp de Contacto'] = guestWhatsapp;
+            const guestNameEl = document.getElementById('guest-name');
+            if (guestNameEl && guestNameEl.value) orderData['Nombre Cliente'] = guestNameEl.value;
         }
         document.querySelectorAll('.dynamic-input').forEach(input => {
             orderData[input.getAttribute('data-name')] = input.value;
@@ -1190,10 +1255,9 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
             }
         }
 
-        // 3. Insertar la orden (obteniendo el ID retornado)
-        const { data: orderResult, error: orderError } = await supabaseClient.from('orders').insert({
-            user_id: currentUser.id,
-            product_id: isPromo ? null : productId,
+        // 3. Insertar la orden
+        const insertPayload = {
+            user_id: currentUser ? currentUser.id : null,
             status: initialStatus,
             order_data: orderData,
             payment_method: method,
@@ -1201,12 +1265,25 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
             payment_proof_url: publicUrl,
             amount_paid: amountPaid,
             currency: currency
-        }).select().single();
+        };
+        // Solo incluir product_id si NO es una oferta especial
+        if (!isPromo) {
+            insertPayload.product_id = productId;
+        }
+
+        let query = supabaseClient.from('orders').insert(insertPayload);
+        
+        // Solo pedir que devuelva la fila si hay usuario logueado (necesario para RLS SELECT)
+        if (currentUser) {
+            query = query.select().single();
+        }
+
+        const { data: orderResult, error: orderError } = await query;
 
         if (orderError) throw orderError;
 
         // 4. Si hubo auto-entrega, marcar el inventario como vendido
-        if (assignedInventory && orderResult) {
+        if (assignedInventory && orderResult && currentUser) {
             await supabaseClient.from('product_inventory')
                 .update({ status: 'sold', order_id: orderResult.id })
                 .eq('id', assignedInventory.id);
@@ -1217,7 +1294,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
         } else if (method === 'saldo') {
             alert("¡Compra exitosa! Hemos descontado el saldo de tu billetera y el pedido se está procesando.");
         } else {
-            alert("¡Éxito! Tu reporte de pago ha sido enviado y está en revisión.");
+            alert(currentUser ? "¡Éxito! Tu reporte de pago ha sido enviado y está en revisión." : "¡Éxito! Tu reporte de pago ha sido enviado. Al ser invitado, te contactaremos por WhatsApp lo más pronto posible.");
         }
         
         closeCheckoutModal();
@@ -1358,10 +1435,10 @@ async function loadAdminOrders(container, filterDate = null) {
                         <tr>
                             <td data-label="Fecha">${new Date(order.created_at).toLocaleString()}</td>
                             <td data-label="Cliente">
-                                ${order.profiles?.full_name}<br>
+                                ${order.profiles?.full_name || order.order_data?.['Nombre Cliente'] || 'Invitado'}<br>
                                 <small style="color:var(--text-muted)">
-                                    ${order.profiles?.whatsapp} 
-                                    ${order.profiles?.whatsapp ? `<a href="https://wa.me/${order.profiles.whatsapp.replace(/\D/g, '')}" target="_blank" style="text-decoration:none;" title="Chatear">💬</a>` : ''}
+                                    ${order.profiles?.whatsapp || order.order_data?.['WhatsApp de Contacto'] || 'Sin número'} 
+                                    ${(order.profiles?.whatsapp || order.order_data?.['WhatsApp de Contacto']) ? `<a href="https://wa.me/${(order.profiles?.whatsapp || order.order_data?.['WhatsApp de Contacto']).replace(/\D/g, '')}" target="_blank" style="text-decoration:none;" title="Chatear">💬</a>` : ''}
                                 </small>
                             </td>
                             <td data-label="Producto">${order.products?.name || order.order_data?.['[OFERTA]'] || 'Oferta / Eliminado'}</td>
@@ -1383,11 +1460,12 @@ async function loadAdminOrders(container, filterDate = null) {
                                     <option value="rejected">Rechazado</option>
                                 </select>
                                 ${(() => {
-                                    if (!order.profiles?.whatsapp) return '';
-                                    const phone = order.profiles.whatsapp.replace(/\D/g, '');
+                                    const rawPhone = order.profiles?.whatsapp || order.order_data?.['WhatsApp de Contacto'];
+                                    if (!rawPhone) return '';
+                                    const phone = rawPhone.replace(/\D/g, '');
                                     let dataStr = '';
                                     if (order.order_data) {
-                                        dataStr = Object.entries(order.order_data).filter(([k,v]) => k !== 'Motivo de Rechazo').map(([k, v]) => `${k}: ${v}`).join(', ');
+                                        dataStr = Object.entries(order.order_data).filter(([k,v]) => k !== 'Motivo de Rechazo' && k !== 'WhatsApp de Contacto' && k !== 'Nombre Cliente').map(([k, v]) => `${k}: ${v}`).join(', ');
                                     }
                                     const priceStr = `${order.amount_paid} ${order.currency}`;
                                     const prodName = order.products?.name || order.order_data?.['[OFERTA]'] || 'Oferta';

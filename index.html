@@ -111,6 +111,18 @@
                 <!-- Inputs dinámicos que se inyectarán según el tipo de producto (ID, Correo, etc.) -->
                 <div id="dynamic-inputs-container"></div>
 
+                <!-- Opciones para Invitados (Solo se muestra si no hay sesión iniciada) -->
+                <div id="guest-checkout-fields" style="display: none; margin-top: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">Tu Nombre (Opcional)</label>
+                        <input type="text" id="guest-name" class="form-input" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Número de WhatsApp (Obligatorio)</label>
+                        <input type="text" id="guest-whatsapp" class="form-input" placeholder="Ej: +58 412 1234567">
+                    </div>
+                </div>
+
                 <!-- Selector de Moneda de Pago -->
                 <div class="form-group" style="margin-top: 15px;">
                     <label class="form-label">¿En qué moneda vas a pagar?</label>

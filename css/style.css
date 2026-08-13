@@ -40,8 +40,10 @@
 }
 
 html, body {
-    max-width: 100%;
+    width: 100%;
+    max-width: 100vw;
     overflow-x: hidden;
+    position: relative;
 }
 
 body {
@@ -199,6 +201,11 @@ a {
     50% { opacity: 1; filter: drop-shadow(0 0 10px var(--cyan-neon)); }
 }
 
+/* Título principal del Home */
+.home-title {
+    font-size: 2.8rem;
+}
+
 /* ==========================================================================
    TARJETAS DE CATEGORÍA (HOME)
    ========================================================================== */
@@ -207,6 +214,7 @@ a {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 30px;
     margin-top: 50px;
+    width: 100%;
 }
 
 .category-card {
@@ -659,10 +667,18 @@ a {
     border-top: 1px solid rgba(255,255,255,0.05);
 }
 .reviews-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    display: block; /* Modificado para carrusel horizontal */
+    width: 100%;
     margin-top: 20px;
+}
+
+/* Ocultar barra de scroll en carruseles horizontales pero permitir hacer scroll */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 .review-card {
     background: rgba(255,255,255,0.02);
@@ -827,50 +843,157 @@ a {
 /* ==========================================================================
    RESPONSIVIDAD (MOBILE LAYOUT)
    ========================================================================== */
+
+/* --- Prevenir overflow horizontal en TODO el sitio --- */
+html, body, #app-container {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
+
 @media (max-width: 768px) {
+    /* === NAVBAR === */
     .navbar-content {
-        padding: 0 5px;
-        gap: 5px;
+        padding: 0 10px;
+        gap: 8px;
         height: auto;
-        min-height: 70px;
+        min-height: 65px;
     }
-    
-    .logo-text {
+    .logo-text { display: none !important; }
+    #global-currency-selector { padding: 4px 5px !important; font-size: 0.8rem !important; }
+    .btn#btn-login { padding: 8px 12px !important; font-size: 0.85rem !important; }
+
+    /* === CONTENEDOR PRINCIPAL === */
+    .container { padding: 0 12px !important; max-width: 100vw !important; box-sizing: border-box !important; }
+    #app-container {
+        padding-top: 15px !important;
+        padding-bottom: 40px !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+    }
+
+    /* === TÍTULO HOME === */
+    .home-title {
+        font-size: 1.5rem !important;
+        line-height: 1.35 !important;
+        padding: 0 5px !important;
+        word-break: break-word;
+        display: block;
+        text-align: center;
+    }
+    #app-container h2 {
+        font-size: 1.1rem !important;
+        line-height: 1.3 !important;
+        padding: 0 5px !important;
+        text-align: center;
+    }
+
+    /* === CATEGORÍAS (1 columna, banners visuales) === */
+    .categories-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-top: 20px !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    .category-card {
+        width: 100% !important;
+        min-height: 140px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: flex-start !important;
+        border-radius: 12px !important;
+        border-width: 2px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        text-align: left !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+    }
+    /* Añadir un overlay degradado solo en la parte inferior de la imagen para que el título resalte, dejando el resto claro */
+    .category-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 70%;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%);
+        z-index: 1;
+        pointer-events: none;
+    }
+    .category-icon {
         display: none !important;
     }
-    
-    #global-currency-selector {
-        padding: 4px 5px !important;
-        font-size: 0.8rem !important;
+    .category-title {
+        font-size: 1.5rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        width: 100% !important;
+        padding: 20px 15px 12px 15px !important;
+        margin: 0 !important;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7) !important;
+        letter-spacing: 1px !important;
+        position: relative !important;
+        z-index: 5 !important;
     }
-    
-    .btn#btn-login {
-        padding: 8px 10px !important;
+
+    /* === CARRUSEL DE OFERTAS === */
+    #offers-carousel-container {
+        overflow: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #offers-carousel-container h3 {
+        font-size: 0.95rem !important;
+        margin-bottom: 10px !important;
+    }
+    #offers-scroll-wrapper {
+        overflow-x: auto !important;
+        max-width: 100% !important;
+    }
+    #offers-scroll-wrapper .product-card {
+        width: 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+        padding: 12px !important;
+        min-height: auto !important;
+    }
+    #offers-scroll-wrapper .product-card img {
+        height: 80px !important;
+    }
+    #offers-scroll-wrapper .product-card button {
+        font-size: 0.75rem !important;
+        padding: 4px !important;
+    }
+
+    /* === CARRUSEL DE RESEÑAS === */
+    .reviews-section {
+        margin-top: 25px !important;
+        padding-top: 20px !important;
+        overflow: hidden !important;
+        width: 100% !important;
+    }
+    #reviews-scroll-wrapper {
+        max-width: 100% !important;
+    }
+    #reviews-scroll-wrapper .review-card {
+        width: 240px !important;
+        min-width: 240px !important;
+        max-width: 240px !important;
+        padding: 14px !important;
         font-size: 0.85rem !important;
     }
 
-    .btn-icon {
-        font-size: 1.2rem;
-        padding: 5px;
-    }
-    
-    /* Fix para el título principal */
-    h1 {
-        font-size: 2rem !important;
-    }
-}
-
-/* Responsive Tables for Mobile */
-@media (max-width: 768px) {
+    /* === TABLAS ADMIN === */
     .data-table thead { display: none; }
     .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
-    .data-table tr { margin-bottom: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px; }
-    .data-table td { text-align: left; padding: 6px 0; position: relative; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); white-space: normal; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .data-table tr { margin-bottom: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; }
+    .data-table td { text-align: left; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); white-space: normal; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
     .data-table td:last-child { border-bottom: none; }
-    .data-table td::before { content: attr(data-label); font-weight: bold; color: var(--cyan-neon); text-align: left; display: block; width: 100%; font-size: 11px; text-transform: uppercase; margin-bottom: 2px;}
+    .data-table td::before { content: attr(data-label); font-weight: bold; color: var(--cyan-neon); display: block; width: 100%; font-size: 11px; text-transform: uppercase; margin-bottom: 2px; }
     .data-table td > * { text-align: left; width: 100%; font-size: 13px; }
 
-    /* Modales a pantalla completa en teléfono */
+    /* === MODAL === */
     .checkout-modal {
         padding: 15px !important;
         width: 100% !important;
@@ -880,18 +1003,15 @@ a {
         border-radius: 0 !important;
         margin: 0 !important;
     }
-    .modal-header {
-        padding-bottom: 10px !important;
-        margin-bottom: 10px !important;
-    }
-    #admin-content-area, #user-orders-container {
-        padding: 0 !important;
-    }
-    .container {
-        padding: 0 10px !important;
-    }
-    .dashboard-card {
-        padding: 15px 10px !important;
-    }
+    .modal-header { padding-bottom: 10px !important; margin-bottom: 10px !important; }
+    #admin-content-area, #user-orders-container { padding: 0 !important; }
+    .dashboard-card { padding: 15px 10px !important; }
 }
 
+/* Extra pequeño: teléfonos < 400px */
+@media (max-width: 400px) {
+    .home-title { font-size: 1.2rem !important; }
+    .category-title { font-size: 1.2rem !important; }
+    #offers-scroll-wrapper .product-card { width: 145px !important; min-width: 145px !important; max-width: 145px !important; }
+    #reviews-scroll-wrapper .review-card { width: 210px !important; min-width: 210px !important; }
+}

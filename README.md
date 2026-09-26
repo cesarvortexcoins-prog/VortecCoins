@@ -50,4 +50,4 @@ Vortex Coins es una plataforma web dedicada a la recarga de monedas para videoju
 ## Autor y Desarrollo
 
 Plataforma desarrollada y diseñada por **Carlos La Rosa**.
-Para soporte técnico o desarrollo de sistemas, contactar vía WhatsApp al +52 954 146 8345.
+Para soporte técnico o desarrollo de sistemas, contactar vía WhatsApp al +52 962 400 5556.
